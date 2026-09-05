@@ -3,8 +3,13 @@ Automated Pytest Test Suite for Rowhammer Dram Mitigation Agent.
 Domain: Clinical & Biomedical AI
 Standard: CAP / CLSI / ISO Standards
 """
+import os
 import sys
 from pathlib import Path
+
+# Set audit secret key before importing agents
+os.environ.setdefault("AUDIT_SECRET_KEY", "test-audit-secret-key-2026-minimum-16-chars")
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
@@ -63,3 +68,61 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_audit_trail_requires_secret_key():
+    """AuditTrail must reject empty/short secret keys."""
+    from agents.base import AuditTrail
+    import os
+
+    # Save and clear env var
+    saved = os.environ.pop("AUDIT_SECRET_KEY", None)
+    try:
+        # Empty key should raise SecurityException
+        with pytest.raises(Exception):
+            AuditTrail(secret_key="")
+        # Short key should raise SecurityException
+        with pytest.raises(Exception):
+            AuditTrail(secret_key="short")
+        # Valid key should work
+        trail = AuditTrail(secret_key="valid-test-key-1234567890")
+        assert trail is not None
+    finally:
+        # Restore env var
+        if saved:
+            os.environ["AUDIT_SECRET_KEY"] = saved
+
+
+def test_phi_guard_redaction():
+    """PHIGuard should redact sensitive patterns."""
+    redacted = PHIGuard.redact_phi("Contact patient at 555-123-4567 or MRN-12345")
+    assert "555-123-4567" not in redacted
+    assert "MRN-12345" not in redacted
+    assert "REDACTED" in redacted
+
+
+def test_input_validation_bounds():
+    """SystemTaskPayload should reject out-of-bounds metrics."""
+    import pytest
+    from pydantic import ValidationError
+
+    # Valid payload
+    p = SystemTaskPayload(task_id="T1", target_identifier="K1", primary_metric=50.0)
+    assert p.primary_metric == 50.0
+
+    # Out-of-bounds should fail
+    with pytest.raises(ValidationError):
+        SystemTaskPayload(task_id="T1", target_identifier="K1", primary_metric=9999.0)
+
+    with pytest.raises(ValidationError):
+        SystemTaskPayload(task_id="T1", target_identifier="K1", primary_metric=-9999.0)
+
+    # Empty task_id should fail
+    with pytest.raises(ValidationError):
+        SystemTaskPayload(task_id="", target_identifier="K1", primary_metric=10.0)
+
+
+def test_batch_file_not_found():
+    """CLI batch command should handle missing files gracefully."""
+    result = main(["batch", "-i", "nonexistent_file.csv"])
+    assert result == 1

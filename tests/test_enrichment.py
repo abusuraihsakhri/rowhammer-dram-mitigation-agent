@@ -1,8 +1,13 @@
 """
 Automated Pytest for rowhammer-dram-mitigation-agent Enrichment Modules.
 """
+import os
 import sys
 from pathlib import Path
+
+# Set audit secret key before importing agents
+os.environ.setdefault("AUDIT_SECRET_KEY", "test-audit-secret-key-2026-minimum-16-chars")
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest

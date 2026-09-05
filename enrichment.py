@@ -8,12 +8,14 @@ import datetime
 import math
 import json
 
+
 # =============================================================================
-# 1. FEATURES
+# BASE ENGINE (shared logic for all enrichment engines)
 # =============================================================================
 @dataclass
-class FeaturesEngineResult:
-    feature_name: str = "Features"
+class BaseEngineResult:
+    """Shared result dataclass for all enrichment engines."""
+    feature_name: str = "Base"
     status: str = "OPTIMAL"
     score: float = 0.0
     metrics: Dict[str, Any] = field(default_factory=dict)
@@ -21,16 +23,19 @@ class FeaturesEngineResult:
     recommendations: List[str] = field(default_factory=list)
     timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class FeaturesEngine:
-    """
-    Features: Features
-    """
+
+class BaseEnrichmentEngine:
+    """Base class providing shared threshold evaluation logic."""
+
+    FEATURE_NAME = "Base"
+    RESULT_CLASS = BaseEngineResult
+
     def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
         self.threshold = threshold
         self.config = config or {}
-        self.history: List[FeaturesEngineResult] = []
+        self.history: List[BaseEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> FeaturesEngineResult:
+    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> BaseEngineResult:
         alerts = []
         recs = []
         status = "OPTIMAL"
@@ -38,375 +43,138 @@ class FeaturesEngine:
 
         if primary_value > self.threshold * 2:
             status = "CRITICAL_ALERT"
-            alerts.append(f"Features: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
+            alerts.append(
+                f"{self.FEATURE_NAME}: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})"
+            )
             recs.append("Initiate immediate protocol review and escalate to attending lead.")
         elif primary_value > self.threshold:
             status = "WARNING"
-            alerts.append(f"Features: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
+            alerts.append(
+                f"{self.FEATURE_NAME}: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})"
+            )
             recs.append("Increase monitoring frequency and perform secondary verification.")
         else:
             recs.append("Parameters nominal under standard operating bounds.")
 
-        res = FeaturesEngineResult(
-            feature_name="Features",
+        res = self.RESULT_CLASS(
+            feature_name=self.FEATURE_NAME,
             status=status,
             score=score,
             metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
             alerts=alerts,
-            recommendations=recs
+            recommendations=recs,
         )
         self.history.append(res)
         return res
+
+
+# =============================================================================
+# 1. FEATURES
+# =============================================================================
+@dataclass
+class FeaturesEngineResult(BaseEngineResult):
+    feature_name: str = "Features"
+
+
+class FeaturesEngine(BaseEnrichmentEngine):
+    """Features: Features"""
+    FEATURE_NAME = "Features"
+    RESULT_CLASS = FeaturesEngineResult
 
 # =============================================================================
 # 2. ROWHAMMER BIT FLIP DETECTION AND CHARACTERIZATION
 # =============================================================================
 @dataclass
-class RowhammerBitFlipDetectionAndCharacterizationEngineResult:
+class RowhammerBitFlipDetectionAndCharacterizationEngineResult(BaseEngineResult):
     feature_name: str = "Rowhammer Bit Flip Detection and Characterization"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class RowhammerBitFlipDetectionAndCharacterizationEngine:
-    """
-    Rowhammer Bit Flip Detection and Characterization: Rowhammer Bit Flip Detection and Characterization
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[RowhammerBitFlipDetectionAndCharacterizationEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> RowhammerBitFlipDetectionAndCharacterizationEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
-
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"Rowhammer Bit Flip Detection and Characterization: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"Rowhammer Bit Flip Detection and Characterization: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = RowhammerBitFlipDetectionAndCharacterizationEngineResult(
-            feature_name="Rowhammer Bit Flip Detection and Characterization",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
+class RowhammerBitFlipDetectionAndCharacterizationEngine(BaseEnrichmentEngine):
+    """Rowhammer Bit Flip Detection and Characterization"""
+    FEATURE_NAME = "Rowhammer Bit Flip Detection and Characterization"
+    RESULT_CLASS = RowhammerBitFlipDetectionAndCharacterizationEngineResult
 
 # =============================================================================
 # 3. TRR (TARGET ROW REFRESH) EFFECTIVENESS TESTING
 # =============================================================================
 @dataclass
-class TrrTargetRowRefreshEffectivenessTestingEngineResult:
+class TrrTargetRowRefreshEffectivenessTestingEngineResult(BaseEngineResult):
     feature_name: str = "TRR (Target Row Refresh) Effectiveness Testing"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class TrrTargetRowRefreshEffectivenessTestingEngine:
-    """
-    TRR (Target Row Refresh) Effectiveness Testing: TRR (Target Row Refresh) Effectiveness Testing
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[TrrTargetRowRefreshEffectivenessTestingEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> TrrTargetRowRefreshEffectivenessTestingEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
+class TrrTargetRowRefreshEffectivenessTestingEngine(BaseEnrichmentEngine):
+    """TRR (Target Row Refresh) Effectiveness Testing"""
+    FEATURE_NAME = "TRR (Target Row Refresh) Effectiveness Testing"
+    RESULT_CLASS = TrrTargetRowRefreshEffectivenessTestingEngineResult
 
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"TRR (Target Row Refresh) Effectiveness Testing: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"TRR (Target Row Refresh) Effectiveness Testing: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = TrrTargetRowRefreshEffectivenessTestingEngineResult(
-            feature_name="TRR (Target Row Refresh) Effectiveness Testing",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
 
 # =============================================================================
 # 4. ROWHAMMER FOR PRIVILEGE ESCALATION
 # =============================================================================
 @dataclass
-class RowhammerForPrivilegeEscalationEngineResult:
+class RowhammerForPrivilegeEscalationEngineResult(BaseEngineResult):
     feature_name: str = "Rowhammer for Privilege Escalation"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class RowhammerForPrivilegeEscalationEngine:
-    """
-    Rowhammer for Privilege Escalation: Rowhammer for Privilege Escalation
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[RowhammerForPrivilegeEscalationEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> RowhammerForPrivilegeEscalationEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
+class RowhammerForPrivilegeEscalationEngine(BaseEnrichmentEngine):
+    """Rowhammer for Privilege Escalation"""
+    FEATURE_NAME = "Rowhammer for Privilege Escalation"
+    RESULT_CLASS = RowhammerForPrivilegeEscalationEngineResult
 
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"Rowhammer for Privilege Escalation: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"Rowhammer for Privilege Escalation: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = RowhammerForPrivilegeEscalationEngineResult(
-            feature_name="Rowhammer for Privilege Escalation",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
 
 # =============================================================================
 # 5. ECC DRAM ROWHAMMER RESISTANCE EVALUATION
 # =============================================================================
 @dataclass
-class EccDramRowhammerResistanceEvaluationEngineResult:
+class EccDramRowhammerResistanceEvaluationEngineResult(BaseEngineResult):
     feature_name: str = "ECC DRAM Rowhammer Resistance Evaluation"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class EccDramRowhammerResistanceEvaluationEngine:
-    """
-    ECC DRAM Rowhammer Resistance Evaluation: ECC DRAM Rowhammer Resistance Evaluation
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[EccDramRowhammerResistanceEvaluationEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> EccDramRowhammerResistanceEvaluationEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
+class EccDramRowhammerResistanceEvaluationEngine(BaseEnrichmentEngine):
+    """ECC DRAM Rowhammer Resistance Evaluation"""
+    FEATURE_NAME = "ECC DRAM Rowhammer Resistance Evaluation"
+    RESULT_CLASS = EccDramRowhammerResistanceEvaluationEngineResult
 
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"ECC DRAM Rowhammer Resistance Evaluation: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"ECC DRAM Rowhammer Resistance Evaluation: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = EccDramRowhammerResistanceEvaluationEngineResult(
-            feature_name="ECC DRAM Rowhammer Resistance Evaluation",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
 
 # =============================================================================
 # 6. ROWHAMMER MITIGATION OVERHEAD MEASUREMENT
 # =============================================================================
 @dataclass
-class RowhammerMitigationOverheadMeasurementEngineResult:
+class RowhammerMitigationOverheadMeasurementEngineResult(BaseEngineResult):
     feature_name: str = "Rowhammer Mitigation Overhead Measurement"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class RowhammerMitigationOverheadMeasurementEngine:
-    """
-    Rowhammer Mitigation Overhead Measurement: Rowhammer Mitigation Overhead Measurement
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[RowhammerMitigationOverheadMeasurementEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> RowhammerMitigationOverheadMeasurementEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
-
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"Rowhammer Mitigation Overhead Measurement: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"Rowhammer Mitigation Overhead Measurement: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = RowhammerMitigationOverheadMeasurementEngineResult(
-            feature_name="Rowhammer Mitigation Overhead Measurement",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
+class RowhammerMitigationOverheadMeasurementEngine(BaseEnrichmentEngine):
+    """Rowhammer Mitigation Overhead Measurement"""
+    FEATURE_NAME = "Rowhammer Mitigation Overhead Measurement"
+    RESULT_CLASS = RowhammerMitigationOverheadMeasurementEngineResult
 
 # =============================================================================
 # 7. ROWHAMMER FOR COLD BOOT ATTACK ENHANCEMENT
 # =============================================================================
 @dataclass
-class RowhammerForColdBootAttackEnhancementEngineResult:
+class RowhammerForColdBootAttackEnhancementEngineResult(BaseEngineResult):
     feature_name: str = "Rowhammer for Cold Boot Attack Enhancement"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class RowhammerForColdBootAttackEnhancementEngine:
-    """
-    Rowhammer for Cold Boot Attack Enhancement: Rowhammer for Cold Boot Attack Enhancement
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[RowhammerForColdBootAttackEnhancementEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> RowhammerForColdBootAttackEnhancementEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
+class RowhammerForColdBootAttackEnhancementEngine(BaseEnrichmentEngine):
+    """Rowhammer for Cold Boot Attack Enhancement"""
+    FEATURE_NAME = "Rowhammer for Cold Boot Attack Enhancement"
+    RESULT_CLASS = RowhammerForColdBootAttackEnhancementEngineResult
 
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"Rowhammer for Cold Boot Attack Enhancement: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"Rowhammer for Cold Boot Attack Enhancement: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = RowhammerForColdBootAttackEnhancementEngineResult(
-            feature_name="Rowhammer for Cold Boot Attack Enhancement",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
 
 # =============================================================================
 # 8. DRAM AGING AND ROWHAMMER CORRELATION
 # =============================================================================
 @dataclass
-class DramAgingAndRowhammerCorrelationEngineResult:
+class DramAgingAndRowhammerCorrelationEngineResult(BaseEngineResult):
     feature_name: str = "DRAM Aging and Rowhammer Correlation"
-    status: str = "OPTIMAL"
-    score: float = 0.0
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    alerts: List[str] = field(default_factory=list)
-    recommendations: List[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
-class DramAgingAndRowhammerCorrelationEngine:
-    """
-    DRAM Aging and Rowhammer Correlation: DRAM Aging and Rowhammer Correlation
-    """
-    def __init__(self, threshold: float = 1.0, config: Optional[Dict[str, Any]] = None):
-        self.threshold = threshold
-        self.config = config or {}
-        self.history: List[DramAgingAndRowhammerCorrelationEngineResult] = []
 
-    def evaluate(self, primary_value: float, secondary_value: float = 0.0, **kwargs) -> DramAgingAndRowhammerCorrelationEngineResult:
-        alerts = []
-        recs = []
-        status = "OPTIMAL"
-        score = round(float(primary_value), 3)
-
-        if primary_value > self.threshold * 2:
-            status = "CRITICAL_ALERT"
-            alerts.append(f"DRAM Aging and Rowhammer Correlation: Primary value {primary_value:.2f} breached critical threshold ({self.threshold * 2:.2f})")
-            recs.append("Initiate immediate protocol review and escalate to attending lead.")
-        elif primary_value > self.threshold:
-            status = "WARNING"
-            alerts.append(f"DRAM Aging and Rowhammer Correlation: Value {primary_value:.2f} exceeds baseline threshold ({self.threshold:.2f})")
-            recs.append("Increase monitoring frequency and perform secondary verification.")
-        else:
-            recs.append("Parameters nominal under standard operating bounds.")
-
-        res = DramAgingAndRowhammerCorrelationEngineResult(
-            feature_name="DRAM Aging and Rowhammer Correlation",
-            status=status,
-            score=score,
-            metrics={"primary": primary_value, "secondary": secondary_value, **kwargs},
-            alerts=alerts,
-            recommendations=recs
-        )
-        self.history.append(res)
-        return res
+class DramAgingAndRowhammerCorrelationEngine(BaseEnrichmentEngine):
+    """DRAM Aging and Rowhammer Correlation"""
+    FEATURE_NAME = "DRAM Aging and Rowhammer Correlation"
+    RESULT_CLASS = DramAgingAndRowhammerCorrelationEngineResult
 
 # =============================================================================
 # COMPOSITE ENRICHMENT SUITE
