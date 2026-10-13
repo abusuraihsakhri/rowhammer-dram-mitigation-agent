@@ -30,7 +30,7 @@ python cli.py chat "Show the available modes"
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-Use `http://127.0.0.1:8000/docs` for interactive API documentation. The CLI reads `AUDIT_SECRET_KEY` from its environment; merely copying `.env.example` to `.env` does not load it into a shell. Docker Compose uses `env_file` instead. The API has **no authentication**, so keep it bound to trusted localhost interfaces and do not publish it directly to the Internet.
+Use `http://127.0.0.1:8000/docs` for interactive API documentation. Generate and set a unique random signing key rather than using the empty placeholder in `.env.example`. The CLI reads `AUDIT_SECRET_KEY` from its environment; merely copying `.env.example` to `.env` does not load it into a shell. Docker Compose uses `env_file` instead. The API has **no authentication**, so keep it bound to trusted localhost interfaces and do not publish it directly to the Internet.
 
 The package also installs `rowhammer-agent` (primary CLI) and `rowhammer-dram-mitigation-engine` (legacy CLI).
 
