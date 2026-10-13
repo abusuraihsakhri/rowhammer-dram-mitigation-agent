@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Rowhammer Dram Mitigation Engine API",
-    "description": "Enterprise Distributed Component Platform (Clinical & Cryptographic AI) adhering to CAP / CLSI / NIST Standards.",
+    "description": "Illustrative DRAM risk indicators; not hardware or TRR verification.",
     "version": "3.0.0-ENTERPRISE",
     "contact": {
       "name": "Dr. Abu Suraih Sakhri",
@@ -22,10 +22,10 @@
     },
     "/metrics": {
       "get": {
-        "summary": "Prometheus operational metrics",
+        "summary": "Get process-local operational counters (JSON)",
         "responses": {
           "200": {
-            "description": "Prometheus text metrics"
+            "description": "JSON metrics snapshot"
           }
         }
       }
@@ -69,14 +69,14 @@
         },
         "responses": {
           "200": {
-            "description": "Consensus dossier with HMAC signature"
+            "description": "Illustrative consensus dossier and process-local HMAC audit hash"
           }
         }
       }
     },
     "/api/chat": {
       "post": {
-        "summary": "Air-gapped supervisory conversational assistant",
+        "summary": "Deterministic mock response (not an external language model)",
         "requestBody": {
           "content": {
             "application/json": {

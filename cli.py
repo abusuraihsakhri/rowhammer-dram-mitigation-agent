@@ -56,7 +56,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  ROWHAMMER DRAM MITIGATION AGENT")
-        print(f"  Domain: Clinical & Biomedical AI | Standard: CAP / CLSI / ISO Standards")
+        print(f"  Domain: Hardware Security | Model: Illustrative numerical thresholds")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:
@@ -75,9 +75,9 @@ def main(argv=None):
 
     if args.command == "verify-audit":
         trail = AuditLogger.get_trail()
-        valid = AuditLogger.verify_integrity()
-        print(f"Audit Trail Blocks: {len(trail)} | Cryptographic Integrity Verified: {valid}")
-        return 0
+        valid = bool(trail) and AuditLogger.verify_integrity()
+        print(f"Process-local Audit Trail Blocks: {len(trail)} | Cryptographic Integrity Verified: {valid}")
+        return 0 if valid else 1
 
     if args.command == "batch":
         try:

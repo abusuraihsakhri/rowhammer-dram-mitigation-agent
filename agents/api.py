@@ -4,7 +4,7 @@ FastAPI REST API Server for Rowhammer Dram Mitigation Agent.
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from .base import AuditLogger, PHIGuard, SecurityException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -12,7 +12,7 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Rowhammer Dram Mitigation Agent API",
-    description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
+    description="Enterprise Distributed Component Platform (Hardware Security (illustrative))",
     version="3.0.0-ENTERPRISE",
 )
 
@@ -23,7 +23,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "rowhammer-dram-mitigation-agent", "domain": "Clinical & Biomedical AI", "standard": "CAP / CLSI / ISO Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "rowhammer-dram-mitigation-agent", "domain": "Hardware Security (illustrative)", "standard": "Illustrative thresholds, not hardware-validated", "version": "3.0.0-ENTERPRISE"}
 
 
 @app.get("/metrics")
@@ -37,7 +37,10 @@ def metrics():
 
 @app.post("/api/audit")
 def api_audit(payload: SystemTaskPayload):
-    dossier = supervisor.process_task(payload)
+    try:
+        dossier = supervisor.process_task(payload)
+    except SecurityException:
+        raise HTTPException(status_code=400, detail="Sensitive identifier detected")
     return dossier.to_dict()
 
 
