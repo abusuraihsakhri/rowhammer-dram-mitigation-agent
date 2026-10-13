@@ -1,44 +1,42 @@
-name: Rowhammer Dram Mitigation Engine CI/CD & Security Verification
+name: Tests and static verification
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
+
+permissions:
+  contents: read
 
 jobs:
-  test-and-audit:
+  test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install fastapi uvicorn pydantic pytest
-
-    - name: Run Pytest Suite
-      env:
-        AUDIT_SECRET_KEY: ci-test-audit-secret-key-2026
-      run: |
-        pytest -v
-
-    - name: Security SAST & Zero-PHI Audit
-      env:
-        AUDIT_SECRET_KEY: ci-test-audit-secret-key-2026
-      run: |
-        python -c "
-        from agents.base import PHIGuard, AuditLogger
-        import pytest
-        assert AuditLogger.verify_integrity() is True
-        print('Security & Zero-PHI Audit Passed!')
-        "
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install package with test dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Dependency consistency
+        run: python -m pip check
+      - name: Python compile and tests
+        env:
+          AUDIT_SECRET_KEY: ci-test-only-signing-key-do-not-use-in-production
+        run: |
+          python -m compileall -q agents rowhammer_mitigation cli.py simulator.py
+          python -m pytest -q
+      - name: Browser script syntax and deterministic tests
+        run: |
+          node --check web/app.js
+          node --test tests/test_frontend.cjs
+      - name: Verify Python distribution builds
+        run: python -m build
