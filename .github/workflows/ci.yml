@@ -39,4 +39,4 @@ jobs:
           node --check web/app.js
           node --test tests/test_frontend.cjs
       - name: Verify Python distribution builds
-        run: python -m build --no-isolation
+        run: python -m build
